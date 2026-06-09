@@ -2,12 +2,9 @@ cask "emacs-app-linux" do
   arch arm: "arm64", intel: "amd64"
 
   version "30.2-18"
-  on_intel do
-    sha256 "2d3d1c145fe8f0edf51f1275c5109eee116f98e2899498ca710ab96858fa0a70"
-  end
-  on_arm do
-    sha256 "d2471179e3a7691148a585c04c573a9dc95ee26b448624f4a8131d73c2234698"
-  end
+  sha256 arm64_linux:  "d2471179e3a7691148a585c04c573a9dc95ee26b448624f4a8131d73c2234698",
+         x86_64_linux: "2d3d1c145fe8f0edf51f1275c5109eee116f98e2899498ca710ab96858fa0a70"
+
 
   url "https://github.com/daegalus/linux-app-builds/releases/download/emacs-pgtk-#{version}/emacs-pgtk-#{version.split("-").first}-fedora-latest-#{arch}.tar.gz",
       verified: "github.com/daegalus/linux-app-builds/"
@@ -47,7 +44,7 @@ cask "emacs-app-linux" do
            target: "#{HOMEBREW_PREFIX}/opt/emacs-app-linux/libexec"
 
   preflight do
-    arch_str = on_arch_conditional arm: "arm64", intel: "amd64"
+    arch_str = arch
 
     emacs_version = version.split("-").first
     staged_prefix = "#{staged_path}/emacs-pgtk-#{emacs_version}-fedora-latest-#{arch_str}"
@@ -58,7 +55,12 @@ cask "emacs-app-linux" do
     # Create symlink to pdmp file in bin directory - Emacs automatically finds it there
     # Emacs looks for {binary-name}.pdmp next to the binary (e.g., emacs-30.2.pdmp)
     # Using a relative symlink saves ~12MB compared to copying
-    target_triplet = on_arch_conditional arm: "aarch64-unknown-linux-gnu", intel: "x86_64-pc-linux-gnu"
+    target_triplet = case arch_str
+                     when "arm64"
+                       "aarch64-unknown-linux-gnu"
+                     else
+                       "x86_64-pc-linux-gnu"
+                     end
     pdmp_source = Dir.glob("#{staged_prefix}/libexec/emacs/#{emacs_version}/#{target_triplet}/*.pdmp").first
     if pdmp_source
       relative_path = "../libexec/emacs/#{emacs_version}/#{target_triplet}/#{File.basename(pdmp_source)}"
